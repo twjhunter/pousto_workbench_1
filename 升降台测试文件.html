@@ -24,16 +24,16 @@
   <style type="text/tailwindcss">
     @layer utilities {
       .control-btn {
-        @apply w-9 h-9 rounded-lg bg-dark text-white text-sm font-bold 
+        @apply w-10 h-10 rounded-lg bg-dark text-white text-sm font-bold 
                flex items-center justify-center cursor-pointer transition-all 
                duration-200 hover:bg-primary active:scale-95 flex-shrink-0;
       }
       .display-panel {
         @apply bg-dark text-[#00FF9D] rounded-lg p-2 font-mono text-lg 
-               shadow-inner flex items-center justify-center w-18 flex-shrink-0;
+               shadow-inner flex items-center justify-center w-20 flex-shrink-0;
       }
       .control-bar {
-        @apply flex items-center gap-1 w-full overflow-hidden;
+        @apply flex items-center gap-1.5 w-full overflow-x-auto pb-1; /* 允许横向滚动，避免溢出 */
       }
       .workbench-container {
         @apply relative h-[28vh] min-h-[210px] w-full mb-3 overflow-hidden border border-gray-200 rounded-lg;
@@ -95,22 +95,20 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-start p-3">
   <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-3">
-    <!-- 标题 -->
+    <!-- 标题区域（与原始一致） -->
     <div class="text-center bg-primary text-white p-2 rounded-lg mb-3">
       <h1 class="text-base font-bold">升降工作台控制系统</h1>
       <p class="text-xs text-blue-100">高度范围: 65~120CM</p>
     </div>
     
-    <!-- 工作台显示区域 -->
+    <!-- 工作台显示区域（与原始一致） -->
     <div class="workbench-container">
-      <!-- 刻度尺区域 -->
       <div class="ruler-wrapper">
         <div class="ruler-mark-container" id="ruler-mark-container">
-          <!-- 刻度将通过JS生成 -->
+          <!-- 刻度通过JS生成（保留原始逻辑） -->
         </div>
       </div>
       
-      <!-- 工作台区域 -->
       <div class="workbench-area">
         <div id="leg-left" class="workbench-leg" style="left: 20%; bottom: 0;"></div>
         <div id="leg-right" class="workbench-leg" style="right: 20%; bottom: 0;"></div>
@@ -121,7 +119,7 @@
       </div>
     </div>
     
-    <!-- 控制区域 -->
+    <!-- 控制栏（保留原始按钮尺寸，添加横向滚动避免溢出） -->
     <div class="control-bar">
       <div class="display-panel">
         <span id="height-display">100.0</span>
@@ -145,6 +143,7 @@
     
     <div class="button-spacer"></div>
     
+    <!-- 操作说明（与原始一致） -->
     <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg">
       <p class="font-medium mb-1">操作说明：</p>
       <ul class="list-disc list-inside space-y-0.5">
@@ -161,7 +160,7 @@
   
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // 核心参数
+      // 核心参数（与原始一致）
       const minorStep = 2;                  
       const majorStep = 10;                 
       const majorLines = [130, 120, 110, 100, 90, 80, 70, 60]; 
@@ -170,15 +169,15 @@
       const defaultMaxHeight = 120.0;       
       const adjustMajorLines = [120, 110, 100, 90, 80, 70];    
       
-      // 限位参数
+      // 限位参数（与原始一致）
       let upperLimit = defaultMaxHeight;    
       let lowerLimit = defaultMinHeight;    
       
-      // 计算总范围和小刻度数量
+      // 计算逻辑（与原始一致）
       const totalHeightRange = majorLines[0] - majorLines[majorLines.length - 1];
       const totalMinorTicks = totalHeightRange / minorStep;
       
-      // DOM元素
+      // DOM元素（与原始一致）
       const heightArrow = document.getElementById('height-arrow');
       const workbench = document.getElementById('workbench');
       const legLeft = document.getElementById('leg-left');
@@ -191,12 +190,12 @@
       const btnSet = document.querySelector('[data-btn="M"]');
       const buttons = document.querySelectorAll('[data-btn]');
       
-      // 保存的高度和限位箭头
+      // 保存的高度和限位箭头（与原始一致）
       const savedHeights = {1: null, 2: null, 3: null, 4: null};
       let upperLimitArrow = null;
       let lowerLimitArrow = null;
       
-      // 状态变量
+      // 状态变量（与原始一致）
       let isMoving = false;
       let movementInterval = null;
       let isSetting = false;
@@ -205,7 +204,7 @@
       let lastDirection = null;
       
       /**
-       * 计算刻度/元素位置
+       * 计算刻度位置（与原始一致）
        */
       function calculatePosition(height) {
         const rulerHeight = rulerContainer.offsetHeight;
@@ -220,7 +219,7 @@
       }
       
       /**
-       * 生成刻度线
+       * 生成刻度线（与原始一致）
        */
       function generateRuler() {
         rulerContainer.innerHTML = '';
@@ -240,12 +239,11 @@
           rulerContainer.appendChild(mark);
         }
         
-        // 更新限位箭头
         updateLimitArrows();
       }
       
       /**
-       * 创建单个刻度元素
+       * 创建刻度元素（与原始一致）
        */
       function createMark(height, topPos, isMajor) {
         const mark = document.createElement('div');
@@ -269,7 +267,7 @@
       }
       
       /**
-       * 从像素位置反推高度值
+       * 像素转高度（与原始一致）
        */
       function pixelToHeight(pixel) {
         const rulerHeight = rulerContainer.offsetHeight;
@@ -282,7 +280,7 @@
       }
       
       /**
-       * 更新所有元素状态
+       * 更新元素状态（与原始一致）
        */
       function updateAllElements() {
         const container = document.querySelector('.workbench-container');
@@ -306,7 +304,7 @@
       }
       
       /**
-       * 移动箭头（受限位控制）
+       * 移动箭头（与原始一致）
        */
       function moveArrow(direction) {
         if (isMoving || isSetting) return;
@@ -340,7 +338,7 @@
       }
       
       /**
-       * 移动到目标高度
+       * 移动到目标高度（与原始一致）
        */
       function moveToTarget(target) {
         if (isMoving || !target || isSetting) return;
@@ -368,7 +366,7 @@
       }
       
       /**
-       * 闪烁显示文本
+       * 闪烁显示（与原始一致）
        */
       function flashDisplay() {
         if (!isSetting) return;
@@ -380,7 +378,7 @@
       }
       
       /**
-       * 更新限位箭头
+       * 更新限位箭头（与原始一致）
        */
       function updateLimitArrows() {
         if (upperLimitArrow) upperLimitArrow.remove();
@@ -398,7 +396,7 @@
       }
       
       /**
-       * 设置上限位
+       * 设置限位（与原始一致）
        */
       function setUpperLimit() {
         const currentHeight = pixelToHeight(parseFloat(heightArrow.style.top) || calculatePosition(100.0));
@@ -412,9 +410,6 @@
         }, 1000);
       }
       
-      /**
-       * 设置下限位
-       */
       function setLowerLimit() {
         const currentHeight = pixelToHeight(parseFloat(heightArrow.style.top) || calculatePosition(100.0));
         lowerLimit = currentHeight;
@@ -427,31 +422,10 @@
         }, 1000);
       }
       
-      // 事件绑定：处理鼠标和触摸事件（关键优化）
-      function bindButtonEvents(btn, action) {
-        // 鼠标事件
-        btn.addEventListener('mousedown', action.start);
-        btn.addEventListener('mouseup', action.end);
-        btn.addEventListener('mouseleave', action.end);
-        
-        // 触摸事件（解决手机长按问题）
-        btn.addEventListener('touchstart', (e) => {
-          e.preventDefault(); // 阻止默认触摸行为（如缩放）
-          action.start(e);
-        });
-        btn.addEventListener('touchend', (e) => {
-          e.preventDefault();
-          action.end(e);
-        });
-        btn.addEventListener('touchcancel', (e) => {
-          e.preventDefault();
-          action.end(e);
-        });
-      }
-      
-      // 上键事件
-      bindButtonEvents(btnUp, {
-        start: (e) => {
+      // 事件绑定（修复手机问题，不改变原始交互逻辑）
+      function bindEvents() {
+        // 上下键事件（同时支持鼠标和触摸）
+        const handleUpStart = (e) => {
           e.stopPropagation();
           if (isSetting) {
             lastDirection = 'up';
@@ -459,13 +433,9 @@
           } else {
             moveArrow('up');
           }
-        },
-        end: stopMovingArrow
-      });
-      
-      // 下键事件
-      bindButtonEvents(btnDown, {
-        start: (e) => {
+        };
+        
+        const handleDownStart = (e) => {
           e.stopPropagation();
           if (isSetting) {
             lastDirection = 'down';
@@ -473,82 +443,116 @@
           } else {
             moveArrow('down');
           }
-        },
-        end: stopMovingArrow
-      });
-      
-      // M键事件（单击切换设置状态）
-      btnSet.addEventListener('click', () => {
-        if (isMoving) return;
-        isSetting = !isSetting;
-        updateAllElements();
-      });
-      
-      // M键长按处理（设置限位）
-      btnSet.addEventListener('touchstart', (e) => {
-        if (isSetting && !isMoving) {
+        };
+        
+        const handleMoveEnd = () => stopMovingArrow();
+        
+        // 鼠标事件（原始逻辑保留）
+        btnUp.addEventListener('mousedown', handleUpStart);
+        btnUp.addEventListener('mouseup', handleMoveEnd);
+        btnUp.addEventListener('mouseleave', handleMoveEnd);
+        
+        btnDown.addEventListener('mousedown', handleDownStart);
+        btnDown.addEventListener('mouseup', handleMoveEnd);
+        btnDown.addEventListener('mouseleave', handleMoveEnd);
+        
+        // 触摸事件（修复手机长按）
+        btnUp.addEventListener('touchstart', (e) => {
+          e.preventDefault(); // 阻止默认触摸行为
+          handleUpStart(e);
+        });
+        btnUp.addEventListener('touchend', (e) => {
           e.preventDefault();
-          setKeyDownTime = Date.now();
-          isLongPressing = true;
-          setTimeout(() => {
-            if (isLongPressing && isSetting) {
-              if (lastDirection === 'up') {
-                setUpperLimit();
-              } else if (lastDirection === 'down') {
-                setLowerLimit();
-              }
-            }
-          }, 2000);
-        }
-      });
-      
-      btnSet.addEventListener('touchend', () => {
-        isLongPressing = false;
-      });
-      
-      btnSet.addEventListener('touchcancel', () => {
-        isLongPressing = false;
-      });
-      
-      // 数字键事件
-      buttons.forEach(btn => {
-        const key = btn.dataset.btn;
-        if (['1','2','3','4'].includes(key)) {
-          // 绑定触摸和点击事件
-          btn.addEventListener('click', handleNumberKey);
-          btn.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            handleNumberKey(e);
-          });
-        }
-      });
-      
-      function handleNumberKey(e) {
-        e.stopPropagation();
-        if (isMoving) return;
+          handleMoveEnd();
+        });
+        btnUp.addEventListener('touchcancel', (e) => {
+          e.preventDefault();
+          handleMoveEnd();
+        });
         
-        const currentHeight = pixelToHeight(
-          parseFloat(heightArrow.style.top) || calculatePosition(100.0)
-        );
+        btnDown.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          handleDownStart(e);
+        });
+        btnDown.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          handleMoveEnd();
+        });
+        btnDown.addEventListener('touchcancel', (e) => {
+          e.preventDefault();
+          handleMoveEnd();
+        });
         
-        if (isSetting) {
-          savedHeights[e.currentTarget.dataset.btn] = currentHeight;
-          e.currentTarget.classList.add('bg-green-600');
-          setTimeout(() => e.currentTarget.classList.remove('bg-green-600'), 500);
-          isSetting = false;
+        // M键（原始逻辑保留）
+        btnSet.addEventListener('click', () => {
+          if (isMoving) return;
+          isSetting = !isSetting;
           updateAllElements();
-        } else if (savedHeights[e.currentTarget.dataset.btn] !== null) {
-          moveToTarget(savedHeights[e.currentTarget.dataset.btn]);
+        });
+        
+        // M键长按（支持触摸）
+        btnSet.addEventListener('touchstart', (e) => {
+          if (isSetting && !isMoving) {
+            e.preventDefault();
+            setKeyDownTime = Date.now();
+            isLongPressing = true;
+            setTimeout(() => {
+              if (isLongPressing && isSetting) {
+                if (lastDirection === 'up') setUpperLimit();
+                else if (lastDirection === 'down') setLowerLimit();
+              }
+            }, 2000);
+          }
+        });
+        
+        btnSet.addEventListener('touchend', () => {
+          isLongPressing = false;
+        });
+        
+        btnSet.addEventListener('touchcancel', () => {
+          isLongPressing = false;
+        });
+        
+        // 数字键（原始逻辑保留）
+        buttons.forEach(btn => {
+          const key = btn.dataset.btn;
+          if (['1','2','3','4'].includes(key)) {
+            btn.addEventListener('click', handleNumberKey);
+            btn.addEventListener('touchstart', (e) => {
+              e.preventDefault();
+              handleNumberKey(e);
+            });
+          }
+        });
+        
+        function handleNumberKey(e) {
+          e.stopPropagation();
+          if (isMoving) return;
+          
+          const currentHeight = pixelToHeight(
+            parseFloat(heightArrow.style.top) || calculatePosition(100.0)
+          );
+          
+          if (isSetting) {
+            savedHeights[e.currentTarget.dataset.btn] = currentHeight;
+            e.currentTarget.classList.add('bg-green-600');
+            setTimeout(() => e.currentTarget.classList.remove('bg-green-600'), 500);
+            isSetting = false;
+            updateAllElements();
+          } else if (savedHeights[e.currentTarget.dataset.btn] !== null) {
+            moveToTarget(savedHeights[e.currentTarget.dataset.btn]);
+          }
         }
       }
       
-      // 初始化
+      // 初始化（与原始一致）
       function init() {
         if (rulerContainer.offsetHeight > 0) {
           generateRuler();
           heightArrow.style.top = `${calculatePosition(100.0)}px`;
           updateAllElements();
           updateLimitArrows();
+          bindEvents();
         } else {
           setTimeout(init, 50);
         }
