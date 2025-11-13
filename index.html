@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>升降工作台控制系统</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
@@ -24,16 +24,16 @@
   <style type="text/tailwindcss">
     @layer utilities {
       .control-btn {
-        @apply w-10 h-10 rounded-lg bg-dark text-white text-sm font-bold 
+        @apply w-9 h-9 rounded-lg bg-dark text-white text-sm font-bold 
                flex items-center justify-center cursor-pointer transition-all 
                duration-200 hover:bg-primary active:scale-95 flex-shrink-0;
       }
       .display-panel {
         @apply bg-dark text-[#00FF9D] rounded-lg p-2 font-mono text-lg 
-               shadow-inner flex items-center justify-center w-20 flex-shrink-0;
+               shadow-inner flex items-center justify-center w-18 flex-shrink-0;
       }
       .control-bar {
-        @apply flex items-center gap-1.5 w-full;
+        @apply flex items-center gap-1 w-full overflow-hidden;
       }
       .workbench-container {
         @apply relative h-[28vh] min-h-[210px] w-full mb-3 overflow-hidden border border-gray-200 rounded-lg;
@@ -140,7 +140,7 @@
       <div class="control-btn" data-btn="3">3</div>
       <div class="control-btn" data-btn="4">4</div>
       
-      <div class="control-btn bg-neutral" data-btn="M">M</div> <!-- 保持M键文字不变 -->
+      <div class="control-btn bg-neutral" data-btn="M">M</div>
     </div>
     
     <div class="button-spacer"></div>
@@ -148,12 +148,11 @@
     <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg">
       <p class="font-medium mb-1">操作说明：</p>
       <ul class="list-disc list-inside space-y-0.5">
-        <li>↑：工作台上升（高度增加）</li>
-        <li>↓：工作台下降（高度减少）</li>
-        <li>M键：按下进入/退出设置状态</li>
-        <li>设置状态+数字键：保存当前高度</li>
-        <li>设置状态+↑+长按M：设置上限位</li>
-        <li>设置状态+↓+长按M：设置下限位</li>
+        <li>↑：工作台上升</li>
+        <li>↓：工作台下降</li>
+        <li>M键：进入/退出设置</li>
+        <li>设置+数字键：保存高度</li>
+        <li>设置+↑/↓+长按M：设限位</li>
       </ul>
     </div>
     
@@ -189,7 +188,7 @@
       const rulerContainer = document.getElementById('ruler-mark-container');
       const btnUp = document.getElementById('btn-up');
       const btnDown = document.getElementById('btn-down');
-      const btnSet = document.querySelector('[data-btn="M"]'); // M键
+      const btnSet = document.querySelector('[data-btn="M"]');
       const buttons = document.querySelectorAll('[data-btn]');
       
       // 保存的高度和限位箭头
@@ -200,7 +199,7 @@
       // 状态变量
       let isMoving = false;
       let movementInterval = null;
-      let isSetting = false; // 设置状态（M键按下切换）
+      let isSetting = false;
       let setKeyDownTime = 0; 
       let isLongPressing = false; 
       let lastDirection = null;
@@ -292,7 +291,6 @@
         const arrowTop = parseFloat(heightArrow.style.top) || calculatePosition(100.0);
         const currentHeight = pixelToHeight(arrowTop);
         
-        // 显示逻辑：设置状态显示"S -"，否则显示高度
         if (isSetting) {
           heightDisplay.textContent = 'S -';
           displayUnit.textContent = '';
@@ -350,21 +348,18 @@
         isMoving = true;
         
         const targetPixel = calculatePosition(validTarget);
-        const rulerHeight = rulerContainer.offsetHeight;
-        const availableHeight = rulerHeight * 0.8;
-        const tickHeight = availableHeight / totalMinorTicks;
-        const step = tickHeight / 10;
+        const step = (targetPixel - (parseFloat(heightArrow.style.top) || calculatePosition(100.0))) / 50;
         
         movementInterval = setInterval(() => {
           const currentTop = parseFloat(heightArrow.style.top) || calculatePosition(100.0);
           let newTop = currentTop < targetPixel ? 
-            Math.min(targetPixel, currentTop + step) : 
-            Math.max(targetPixel, currentTop - step);
+            Math.min(targetPixel, currentTop + Math.abs(step)) : 
+            Math.max(targetPixel, currentTop - Math.abs(step));
           
           heightArrow.style.top = `${newTop}px`;
           updateAllElements();
           
-          if (Math.abs(newTop - targetPixel) < step) {
+          if (Math.abs(newTop - targetPixel) < 0.5) {
             heightArrow.style.top = `${targetPixel}px`;
             updateAllElements();
             stopMovingArrow();
@@ -432,17 +427,67 @@
         }, 1000);
       }
       
-      // 事件绑定：M键（按下即生效，切换设置状态）
+      // 事件绑定：处理鼠标和触摸事件（关键优化）
+      function bindButtonEvents(btn, action) {
+        // 鼠标事件
+        btn.addEventListener('mousedown', action.start);
+        btn.addEventListener('mouseup', action.end);
+        btn.addEventListener('mouseleave', action.end);
+        
+        // 触摸事件（解决手机长按问题）
+        btn.addEventListener('touchstart', (e) => {
+          e.preventDefault(); // 阻止默认触摸行为（如缩放）
+          action.start(e);
+        });
+        btn.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          action.end(e);
+        });
+        btn.addEventListener('touchcancel', (e) => {
+          e.preventDefault();
+          action.end(e);
+        });
+      }
+      
+      // 上键事件
+      bindButtonEvents(btnUp, {
+        start: (e) => {
+          e.stopPropagation();
+          if (isSetting) {
+            lastDirection = 'up';
+            flashDisplay();
+          } else {
+            moveArrow('up');
+          }
+        },
+        end: stopMovingArrow
+      });
+      
+      // 下键事件
+      bindButtonEvents(btnDown, {
+        start: (e) => {
+          e.stopPropagation();
+          if (isSetting) {
+            lastDirection = 'down';
+            flashDisplay();
+          } else {
+            moveArrow('down');
+          }
+        },
+        end: stopMovingArrow
+      });
+      
+      // M键事件（单击切换设置状态）
       btnSet.addEventListener('click', () => {
         if (isMoving) return;
-        // 单击切换设置状态（按下即生效，无需长按）
         isSetting = !isSetting;
         updateAllElements();
       });
       
-      // 长按M键处理（仅在设置状态下有效）
-      btnSet.addEventListener('mousedown', (e) => {
+      // M键长按处理（设置限位）
+      btnSet.addEventListener('touchstart', (e) => {
         if (isSetting && !isMoving) {
+          e.preventDefault();
           setKeyDownTime = Date.now();
           isLongPressing = true;
           setTimeout(() => {
@@ -457,66 +502,45 @@
         }
       });
       
-      btnSet.addEventListener('mouseup', () => {
+      btnSet.addEventListener('touchend', () => {
         isLongPressing = false;
       });
       
-      btnSet.addEventListener('mouseleave', () => {
+      btnSet.addEventListener('touchcancel', () => {
         isLongPressing = false;
       });
-      
-      // 上键事件
-      btnUp.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-        if (isSetting) {
-          lastDirection = 'up';
-          flashDisplay();
-        } else {
-          moveArrow('up');
-        }
-      });
-      
-      btnUp.addEventListener('mouseup', stopMovingArrow);
-      btnUp.addEventListener('mouseleave', stopMovingArrow);
-      
-      // 下键事件
-      btnDown.addEventListener('mousedown', (e) => {
-        e.stopPropagation();
-        if (isSetting) {
-          lastDirection = 'down';
-          flashDisplay();
-        } else {
-          moveArrow('down');
-        }
-      });
-      
-      btnDown.addEventListener('mouseup', stopMovingArrow);
-      btnDown.addEventListener('mouseleave', stopMovingArrow);
       
       // 数字键事件
       buttons.forEach(btn => {
         const key = btn.dataset.btn;
         if (['1','2','3','4'].includes(key)) {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (isMoving) return;
-            
-            const currentHeight = pixelToHeight(
-              parseFloat(heightArrow.style.top) || calculatePosition(100.0)
-            );
-            
-            if (isSetting) {
-              savedHeights[key] = currentHeight;
-              btn.classList.add('bg-green-600');
-              setTimeout(() => btn.classList.remove('bg-green-600'), 500);
-              isSetting = false; // 保存后退出设置状态
-              updateAllElements();
-            } else if (savedHeights[key] !== null) {
-              moveToTarget(savedHeights[key]);
-            }
+          // 绑定触摸和点击事件
+          btn.addEventListener('click', handleNumberKey);
+          btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleNumberKey(e);
           });
         }
       });
+      
+      function handleNumberKey(e) {
+        e.stopPropagation();
+        if (isMoving) return;
+        
+        const currentHeight = pixelToHeight(
+          parseFloat(heightArrow.style.top) || calculatePosition(100.0)
+        );
+        
+        if (isSetting) {
+          savedHeights[e.currentTarget.dataset.btn] = currentHeight;
+          e.currentTarget.classList.add('bg-green-600');
+          setTimeout(() => e.currentTarget.classList.remove('bg-green-600'), 500);
+          isSetting = false;
+          updateAllElements();
+        } else if (savedHeights[e.currentTarget.dataset.btn] !== null) {
+          moveToTarget(savedHeights[e.currentTarget.dataset.btn]);
+        }
+      }
       
       // 初始化
       function init() {
