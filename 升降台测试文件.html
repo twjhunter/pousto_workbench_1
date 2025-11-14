@@ -26,7 +26,11 @@
       .control-btn {
         @apply w-10 h-10 rounded-lg bg-dark text-white text-sm font-bold 
                flex items-center justify-center cursor-pointer transition-all 
-               duration-200 hover:bg-primary active:scale-95 flex-shrink-0;
+               duration-200 hover:bg-primary active:scale-95 flex-shrink-0
+               select-none; /* 禁止文本选择 */
+        -webkit-user-select: none; /* Safari 浏览器兼容 */
+        user-select: none; /* 禁止文本选择 */
+        touch-action: manipulation; /* 优化触摸行为，防止双击缩放 */
       }
       .display-panel {
         @apply bg-dark text-[#00FF9D] rounded-lg p-2 font-mono text-lg 
@@ -93,10 +97,10 @@
     }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-start p-3">
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-start p-3 select-none">
   <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-3">
     <!-- 标题 -->
-    <div class="text-center bg-primary text-white p-2 rounded-lg mb-3">
+    <div class="text-center bg-primary text-white p-2 rounded-lg mb-3 select-none">
       <h1 class="text-base font-bold">升降工作台控制系统</h1>
       <p class="text-xs text-blue-100">高度范围: 65~120CM</p>
     </div>
@@ -140,12 +144,12 @@
       <div class="control-btn" data-btn="3">3</div>
       <div class="control-btn" data-btn="4">4</div>
       
-      <div class="control-btn bg-neutral" data-btn="M">M</div> <!-- 保持M键文字不变 -->
+      <div class="control-btn bg-neutral" data-btn="M">M</div>
     </div>
     
     <div class="button-spacer"></div>
     
-    <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg">
+    <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg select-text">
       <p class="font-medium mb-1">操作说明：</p>
       <ul class="list-disc list-inside space-y-0.5">
         <li>↑：工作台上升（高度增加）</li>
@@ -204,6 +208,19 @@
       let setKeyDownTime = 0; 
       let isLongPressing = false; 
       let lastDirection = null;
+      
+      // 防止默认触摸行为的函数
+      function preventDefaultTouch(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      // 为所有控制按钮添加触摸事件捕获，防止默认行为
+      buttons.forEach(btn => {
+        btn.addEventListener('touchstart', preventDefaultTouch, {passive: false});
+        btn.addEventListener('touchmove', preventDefaultTouch, {passive: false});
+        btn.addEventListener('touchend', preventDefaultTouch, {passive: false});
+      });
       
       /**
        * 计算刻度/元素位置
@@ -454,7 +471,7 @@
                 setLowerLimit();
               }
             }
-          }, 2000);
+          }, 1500); // 缩短长按检测时间，提升移动端体验
         }
       }
       
