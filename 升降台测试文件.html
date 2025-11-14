@@ -22,15 +22,21 @@
   </script>
   
   <style type="text/tailwindcss">
+    @layer base {
+      /* 全局禁用文本选择，解决移动端触控选中文本问题 */
+      body {
+        -webkit-user-select: none; /* WebKit内核浏览器（Chrome、Safari等） */
+        -moz-user-select: none;    /* Firefox浏览器 */
+        -ms-user-select: none;     /* IE/Edge浏览器 */
+        user-select: none;         /* 标准属性 */
+      }
+    }
+    
     @layer utilities {
       .control-btn {
         @apply w-10 h-10 rounded-lg bg-dark text-white text-sm font-bold 
                flex items-center justify-center cursor-pointer transition-all 
-               duration-200 hover:bg-primary active:scale-95 flex-shrink-0
-               select-none; /* 禁止文本选择 */
-        -webkit-user-select: none; /* Safari 浏览器兼容 */
-        user-select: none; /* 禁止文本选择 */
-        touch-action: manipulation; /* 优化触摸行为，防止双击缩放 */
+               duration-200 hover:bg-primary active:scale-95 flex-shrink-0;
       }
       .display-panel {
         @apply bg-dark text-[#00FF9D] rounded-lg p-2 font-mono text-lg 
@@ -97,10 +103,10 @@
     }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-start p-3 select-none">
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-start p-3">
   <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-3">
     <!-- 标题 -->
-    <div class="text-center bg-primary text-white p-2 rounded-lg mb-3 select-none">
+    <div class="text-center bg-primary text-white p-2 rounded-lg mb-3">
       <h1 class="text-base font-bold">升降工作台控制系统</h1>
       <p class="text-xs text-blue-100">高度范围: 65~120CM</p>
     </div>
@@ -144,12 +150,12 @@
       <div class="control-btn" data-btn="3">3</div>
       <div class="control-btn" data-btn="4">4</div>
       
-      <div class="control-btn bg-neutral" data-btn="M">M</div>
+      <div class="control-btn bg-neutral" data-btn="M">M</div> <!-- 保持M键文字不变 -->
     </div>
     
     <div class="button-spacer"></div>
     
-    <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg select-text">
+    <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg">
       <p class="font-medium mb-1">操作说明：</p>
       <ul class="list-disc list-inside space-y-0.5">
         <li>↑：工作台上升（高度增加）</li>
@@ -208,19 +214,6 @@
       let setKeyDownTime = 0; 
       let isLongPressing = false; 
       let lastDirection = null;
-      
-      // 防止默认触摸行为的函数
-      function preventDefaultTouch(e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      
-      // 为所有控制按钮添加触摸事件捕获，防止默认行为
-      buttons.forEach(btn => {
-        btn.addEventListener('touchstart', preventDefaultTouch, {passive: false});
-        btn.addEventListener('touchmove', preventDefaultTouch, {passive: false});
-        btn.addEventListener('touchend', preventDefaultTouch, {passive: false});
-      });
       
       /**
        * 计算刻度/元素位置
@@ -334,7 +327,6 @@
         const rulerHeight = rulerContainer.offsetHeight;
         const availableHeight = rulerHeight * 0.8;
         const tickHeight = availableHeight / totalMinorTicks;
-        const step = tickHeight / 10;
         
         const maxPixel = calculatePosition(upperLimit);
         const minPixel = calculatePosition(lowerLimit);
@@ -452,14 +444,13 @@
       // 事件绑定：M键（按下即生效，切换设置状态）
       btnSet.addEventListener('click', () => {
         if (isMoving) return;
+        // 单击切换设置状态（按下即生效，无需长按）
         isSetting = !isSetting;
         updateAllElements();
       });
       
       // 长按M键处理（仅在设置状态下有效）
-      function handleSetKeyDown(e) {
-        e.stopPropagation();
-        e.preventDefault();
+      btnSet.addEventListener('mousedown', (e) => {
         if (isSetting && !isMoving) {
           setKeyDownTime = Date.now();
           isLongPressing = true;
@@ -471,100 +462,68 @@
                 setLowerLimit();
               }
             }
-          }, 1500); // 缩短长按检测时间，提升移动端体验
+          }, 2000);
         }
-      }
+      });
       
-      function handleSetKeyUp(e) {
-        e.stopPropagation();
-        e.preventDefault();
+      btnSet.addEventListener('mouseup', () => {
         isLongPressing = false;
-      }
+      });
       
-      btnSet.addEventListener('mousedown', handleSetKeyDown);
-      btnSet.addEventListener('touchstart', handleSetKeyDown);
-      btnSet.addEventListener('mouseup', handleSetKeyUp);
-      btnSet.addEventListener('touchend', handleSetKeyUp);
-      btnSet.addEventListener('mouseleave', handleSetKeyUp);
-      btnSet.addEventListener('touchcancel', handleSetKeyUp);
+      btnSet.addEventListener('mouseleave', () => {
+        isLongPressing = false;
+      });
       
-      // 上键事件处理
-      function handleUpStart(e) {
+      // 上键事件
+      btnUp.addEventListener('mousedown', (e) => {
         e.stopPropagation();
-        e.preventDefault();
         if (isSetting) {
           lastDirection = 'up';
           flashDisplay();
         } else {
           moveArrow('up');
         }
-      }
+      });
       
-      function handleUpEnd(e) {
+      btnUp.addEventListener('mouseup', stopMovingArrow);
+      btnUp.addEventListener('mouseleave', stopMovingArrow);
+      
+      // 下键事件
+      btnDown.addEventListener('mousedown', (e) => {
         e.stopPropagation();
-        e.preventDefault();
-        stopMovingArrow();
-      }
-      
-      btnUp.addEventListener('mousedown', handleUpStart);
-      btnUp.addEventListener('touchstart', handleUpStart);
-      btnUp.addEventListener('mouseup', handleUpEnd);
-      btnUp.addEventListener('touchend', handleUpEnd);
-      btnUp.addEventListener('mouseleave', handleUpEnd);
-      btnUp.addEventListener('touchcancel', handleUpEnd);
-      
-      // 下键事件处理
-      function handleDownStart(e) {
-        e.stopPropagation();
-        e.preventDefault();
         if (isSetting) {
           lastDirection = 'down';
           flashDisplay();
         } else {
           moveArrow('down');
         }
-      }
+      });
       
-      function handleDownEnd(e) {
-        e.stopPropagation();
-        e.preventDefault();
-        stopMovingArrow();
-      }
+      btnDown.addEventListener('mouseup', stopMovingArrow);
+      btnDown.addEventListener('mouseleave', stopMovingArrow);
       
-      btnDown.addEventListener('mousedown', handleDownStart);
-      btnDown.addEventListener('touchstart', handleDownStart);
-      btnDown.addEventListener('mouseup', handleDownEnd);
-      btnDown.addEventListener('touchend', handleDownEnd);
-      btnDown.addEventListener('mouseleave', handleDownEnd);
-      btnDown.addEventListener('touchcancel', handleDownEnd);
-      
-      // 数字键事件处理
-      function handleNumberKey(e) {
-        e.stopPropagation();
-        e.preventDefault();
-        if (isMoving) return;
-        
-        const key = this.dataset.btn;
-        const currentHeight = pixelToHeight(
-          parseFloat(heightArrow.style.top) || calculatePosition(100.0)
-        );
-        
-        if (isSetting) {
-          savedHeights[key] = currentHeight;
-          this.classList.add('bg-green-600');
-          setTimeout(() => this.classList.remove('bg-green-600'), 500);
-          isSetting = false; // 保存后退出设置状态
-          updateAllElements();
-        } else if (savedHeights[key] !== null) {
-          moveToTarget(savedHeights[key]);
-        }
-      }
-      
+      // 数字键事件
       buttons.forEach(btn => {
         const key = btn.dataset.btn;
         if (['1','2','3','4'].includes(key)) {
-          btn.addEventListener('click', handleNumberKey);
-          btn.addEventListener('touchstart', handleNumberKey);
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isMoving) return;
+            
+            const currentHeight = pixelToHeight(
+              parseFloat(heightArrow.style.top) || calculatePosition(100.0)
+            );
+            
+            if (isSetting) {
+              savedHeights[key] = currentHeight;
+              btn.classList.add('bg-green-600');
+              setTimeout(() => btn.classList.remove('bg-green-600'), 500);
+              isSetting = false; // 保存后退出设置状态
+              updateAllElements();
+            } else if (savedHeights[key] !== null) {
+              moveToTarget(savedHeights[key]);
+            }
+          });
         }
       });
       
