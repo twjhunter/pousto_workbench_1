@@ -33,7 +33,11 @@
                shadow-inner flex items-center justify-center w-20 flex-shrink-0;
       }
       .control-bar {
-        @apply flex items-center gap-1.5 w-full overflow-x-auto pb-1; /* 允许横向滚动，避免溢出 */
+        @apply flex flex-wrap items-center gap-1.5 w-full;
+        padding-bottom: 4px;
+      }
+      .control-buttons-group {
+        @apply flex items-center gap-1.5;
       }
       .workbench-container {
         @apply relative h-[28vh] min-h-[210px] w-full mb-3 overflow-hidden border border-gray-200 rounded-lg;
@@ -95,55 +99,53 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-start p-3">
   <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-3">
-    <!-- 标题区域（与原始一致） -->
+    <!-- 标题区域 -->
     <div class="text-center bg-primary text-white p-2 rounded-lg mb-3">
       <h1 class="text-base font-bold">升降工作台控制系统</h1>
       <p class="text-xs text-blue-100">高度范围: 65~120CM</p>
     </div>
     
-    <!-- 工作台显示区域（与原始一致） -->
+    <!-- 工作台显示区域 -->
     <div class="workbench-container">
       <div class="ruler-wrapper">
-        <div class="ruler-mark-container" id="ruler-mark-container">
-          <!-- 刻度通过JS生成（保留原始逻辑） -->
-        </div>
+        <div class="ruler-mark-container" id="ruler-mark-container"></div>
       </div>
       
       <div class="workbench-area">
         <div id="leg-left" class="workbench-leg" style="left: 20%; bottom: 0;"></div>
         <div id="leg-right" class="workbench-leg" style="right: 20%; bottom: 0;"></div>
-        <div id="workbench" class="workbench-top" style="left: 15%; width: 70%;">
-          台面
-        </div>
+        <div id="workbench" class="workbench-top" style="left: 15%; width: 70%;">台面</div>
         <div id="height-arrow" class="height-arrow"></div>
       </div>
     </div>
     
-    <!-- 控制栏（保留原始按钮尺寸，添加横向滚动避免溢出） -->
+    <!-- 控制栏 -->
     <div class="control-bar">
       <div class="display-panel">
         <span id="height-display">100.0</span>
         <span class="ml-1 text-xs">CM</span>
       </div>
       
-      <div class="control-btn" id="btn-up" data-btn="up">
-        <i class="fa fa-chevron-up"></i>
+      <div class="control-buttons-group">
+        <div class="control-btn" id="btn-up" data-btn="up">
+          <i class="fa fa-chevron-up"></i>
+        </div>
+        <div class="control-btn" id="btn-down" data-btn="down">
+          <i class="fa fa-chevron-down"></i>
+        </div>
+        
+        <div class="control-btn" data-btn="1">1</div>
+        <div class="control-btn" data-btn="2">2</div>
+        <div class="control-btn" data-btn="3">3</div>
+        <div class="control-btn" data-btn="4">4</div>
+        
+        <div class="control-btn bg-neutral" data-btn="M" id="btn-m">M</div>
       </div>
-      <div class="control-btn" id="btn-down" data-btn="down">
-        <i class="fa fa-chevron-down"></i>
-      </div>
-      
-      <div class="control-btn" data-btn="1">1</div>
-      <div class="control-btn" data-btn="2">2</div>
-      <div class="control-btn" data-btn="3">3</div>
-      <div class="control-btn" data-btn="4">4</div>
-      
-      <div class="control-btn bg-neutral" data-btn="M">M</div>
     </div>
     
     <div class="button-spacer"></div>
     
-    <!-- 操作说明（与原始一致） -->
+    <!-- 操作说明 -->
     <div class="text-xs text-gray-600 bg-gray-50 p-2 rounded-lg">
       <p class="font-medium mb-1">操作说明：</p>
       <ul class="list-disc list-inside space-y-0.5">
@@ -160,7 +162,7 @@
   
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // 核心参数（与原始一致）
+      // 核心参数
       const minorStep = 2;                  
       const majorStep = 10;                 
       const majorLines = [130, 120, 110, 100, 90, 80, 70, 60]; 
@@ -169,15 +171,13 @@
       const defaultMaxHeight = 120.0;       
       const adjustMajorLines = [120, 110, 100, 90, 80, 70];    
       
-      // 限位参数（与原始一致）
       let upperLimit = defaultMaxHeight;    
       let lowerLimit = defaultMinHeight;    
       
-      // 计算逻辑（与原始一致）
       const totalHeightRange = majorLines[0] - majorLines[majorLines.length - 1];
       const totalMinorTicks = totalHeightRange / minorStep;
       
-      // DOM元素（与原始一致）
+      // DOM元素
       const heightArrow = document.getElementById('height-arrow');
       const workbench = document.getElementById('workbench');
       const legLeft = document.getElementById('leg-left');
@@ -187,25 +187,22 @@
       const rulerContainer = document.getElementById('ruler-mark-container');
       const btnUp = document.getElementById('btn-up');
       const btnDown = document.getElementById('btn-down');
-      const btnSet = document.querySelector('[data-btn="M"]');
+      const btnSet = document.getElementById('btn-m');
       const buttons = document.querySelectorAll('[data-btn]');
       
-      // 保存的高度和限位箭头（与原始一致）
       const savedHeights = {1: null, 2: null, 3: null, 4: null};
       let upperLimitArrow = null;
       let lowerLimitArrow = null;
       
-      // 状态变量（与原始一致）
+      // 状态变量
       let isMoving = false;
       let movementInterval = null;
       let isSetting = false;
-      let setKeyDownTime = 0; 
       let isLongPressing = false; 
       let lastDirection = null;
+      let longPressTimer = null;
       
-      /**
-       * 计算刻度位置（与原始一致）
-       */
+      // 核心计算函数
       function calculatePosition(height) {
         const rulerHeight = rulerContainer.offsetHeight;
         const availableHeight = rulerHeight * 0.8;
@@ -218,20 +215,15 @@
         return baseTopPos;
       }
       
-      /**
-       * 生成刻度线（与原始一致）
-       */
       function generateRuler() {
         rulerContainer.innerHTML = '';
         
-        // 生成大刻度
         for (let h of majorLines) {
           const topPos = calculatePosition(h);
           const mark = createMark(h, topPos, true);
           rulerContainer.appendChild(mark);
         }
         
-        // 生成小刻度
         for (let h = majorLines[0]; h >= majorLines[majorLines.length - 1]; h -= minorStep) {
           if (majorLines.includes(h)) continue;
           const topPos = calculatePosition(h);
@@ -242,9 +234,6 @@
         updateLimitArrows();
       }
       
-      /**
-       * 创建刻度元素（与原始一致）
-       */
       function createMark(height, topPos, isMajor) {
         const mark = document.createElement('div');
         mark.className = 'ruler-mark';
@@ -266,9 +255,6 @@
         return mark;
       }
       
-      /**
-       * 像素转高度（与原始一致）
-       */
       function pixelToHeight(pixel) {
         const rulerHeight = rulerContainer.offsetHeight;
         const availableHeight = rulerHeight * 0.8;
@@ -279,9 +265,6 @@
         return Math.max(lowerLimit, Math.min(upperLimit, Math.round(height * 10) / 10));
       }
       
-      /**
-       * 更新元素状态（与原始一致）
-       */
       function updateAllElements() {
         const container = document.querySelector('.workbench-container');
         const containerHeight = container.offsetHeight;
@@ -303,9 +286,6 @@
         legRight.style.height = `${Math.max(0, legHeight)}px`;
       }
       
-      /**
-       * 移动箭头（与原始一致）
-       */
       function moveArrow(direction) {
         if (isMoving || isSetting) return;
         isMoving = true;
@@ -337,9 +317,6 @@
         isMoving = false;
       }
       
-      /**
-       * 移动到目标高度（与原始一致）
-       */
       function moveToTarget(target) {
         if (isMoving || !target || isSetting) return;
         const validTarget = Math.max(lowerLimit, Math.min(upperLimit, target));
@@ -365,9 +342,6 @@
         }, 20);
       }
       
-      /**
-       * 闪烁显示（与原始一致）
-       */
       function flashDisplay() {
         if (!isSetting) return;
         const originalText = heightDisplay.textContent;
@@ -377,9 +351,6 @@
         }, 200);
       }
       
-      /**
-       * 更新限位箭头（与原始一致）
-       */
       function updateLimitArrows() {
         if (upperLimitArrow) upperLimitArrow.remove();
         if (lowerLimitArrow) lowerLimitArrow.remove();
@@ -395,9 +366,6 @@
         rulerContainer.appendChild(lowerLimitArrow);
       }
       
-      /**
-       * 设置限位（与原始一致）
-       */
       function setUpperLimit() {
         const currentHeight = pixelToHeight(parseFloat(heightArrow.style.top) || calculatePosition(100.0));
         upperLimit = currentHeight;
@@ -422,11 +390,27 @@
         }, 1000);
       }
       
-      // 事件绑定（修复手机问题，不改变原始交互逻辑）
+      // 统一长按逻辑
+      function startLongPress() {
+        if (isSetting && !isMoving) {
+          isLongPressing = true;
+          longPressTimer = setTimeout(() => {
+            if (isLongPressing && isSetting) {
+              if (lastDirection === 'up') setUpperLimit();
+              else if (lastDirection === 'down') setLowerLimit();
+            }
+          }, 2000);
+        }
+      }
+      
+      function endLongPress() {
+        isLongPressing = false;
+        clearTimeout(longPressTimer);
+      }
+      
       function bindEvents() {
-        // 上下键事件（同时支持鼠标和触摸）
-        const handleUpStart = (e) => {
-          e.stopPropagation();
+        // 上下键事件处理
+        const handleUpStart = () => {
           if (isSetting) {
             lastDirection = 'up';
             flashDisplay();
@@ -435,8 +419,7 @@
           }
         };
         
-        const handleDownStart = (e) => {
-          e.stopPropagation();
+        const handleDownStart = () => {
           if (isSetting) {
             lastDirection = 'down';
             flashDisplay();
@@ -447,7 +430,7 @@
         
         const handleMoveEnd = () => stopMovingArrow();
         
-        // 鼠标事件（原始逻辑保留）
+        // 上下键 - 鼠标事件
         btnUp.addEventListener('mousedown', handleUpStart);
         btnUp.addEventListener('mouseup', handleMoveEnd);
         btnUp.addEventListener('mouseleave', handleMoveEnd);
@@ -456,77 +439,92 @@
         btnDown.addEventListener('mouseup', handleMoveEnd);
         btnDown.addEventListener('mouseleave', handleMoveEnd);
         
-        // 触摸事件（修复手机长按）
+        // 上下键 - 触摸事件（修复：仅必要时阻止默认行为）
         btnUp.addEventListener('touchstart', (e) => {
-          e.preventDefault(); // 阻止默认触摸行为
-          handleUpStart(e);
-        });
+          e.stopPropagation(); // 防止事件冒泡
+          handleUpStart();
+        }, { passive: true }); // 允许默认行为（避免触摸阻塞）
+        
         btnUp.addEventListener('touchend', (e) => {
-          e.preventDefault();
+          e.stopPropagation();
           handleMoveEnd();
         });
+        
         btnUp.addEventListener('touchcancel', (e) => {
-          e.preventDefault();
+          e.stopPropagation();
           handleMoveEnd();
         });
         
         btnDown.addEventListener('touchstart', (e) => {
-          e.preventDefault();
-          handleDownStart(e);
-        });
+          e.stopPropagation();
+          handleDownStart();
+        }, { passive: true });
+        
         btnDown.addEventListener('touchend', (e) => {
-          e.preventDefault();
-          handleMoveEnd();
-        });
-        btnDown.addEventListener('touchcancel', (e) => {
-          e.preventDefault();
+          e.stopPropagation();
           handleMoveEnd();
         });
         
-        // M键（原始逻辑保留）
+        btnDown.addEventListener('touchcancel', (e) => {
+          e.stopPropagation();
+          handleMoveEnd();
+        });
+        
+        // M键 - 单击切换设置（鼠标+触摸共用）
         btnSet.addEventListener('click', () => {
           if (isMoving) return;
           isSetting = !isSetting;
           updateAllElements();
         });
         
-        // M键长按（支持触摸）
+        // M键 - 鼠标长按
+        btnSet.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          startLongPress();
+        });
+        
+        btnSet.addEventListener('mouseup', (e) => {
+          e.stopPropagation();
+          endLongPress();
+        });
+        
+        btnSet.addEventListener('mouseleave', (e) => {
+          e.stopPropagation();
+          endLongPress();
+        });
+        
+        // M键 - 触摸长按（修复：允许默认行为）
         btnSet.addEventListener('touchstart', (e) => {
-          if (isSetting && !isMoving) {
-            e.preventDefault();
-            setKeyDownTime = Date.now();
-            isLongPressing = true;
-            setTimeout(() => {
-              if (isLongPressing && isSetting) {
-                if (lastDirection === 'up') setUpperLimit();
-                else if (lastDirection === 'down') setLowerLimit();
-              }
-            }, 2000);
-          }
+          e.stopPropagation();
+          startLongPress();
+        }, { passive: true }); // 关键：passive模式避免触摸阻塞
+        
+        btnSet.addEventListener('touchend', (e) => {
+          e.stopPropagation();
+          endLongPress();
         });
         
-        btnSet.addEventListener('touchend', () => {
-          isLongPressing = false;
+        btnSet.addEventListener('touchcancel', (e) => {
+          e.stopPropagation();
+          endLongPress();
         });
         
-        btnSet.addEventListener('touchcancel', () => {
-          isLongPressing = false;
-        });
-        
-        // 数字键（原始逻辑保留）
+        // 数字键事件
         buttons.forEach(btn => {
           const key = btn.dataset.btn;
           if (['1','2','3','4'].includes(key)) {
+            // 鼠标点击
             btn.addEventListener('click', handleNumberKey);
+            
+            // 触摸点击
             btn.addEventListener('touchstart', (e) => {
-              e.preventDefault();
+              e.stopPropagation();
               handleNumberKey(e);
-            });
+            }, { passive: true });
           }
         });
         
         function handleNumberKey(e) {
-          e.stopPropagation();
           if (isMoving) return;
           
           const currentHeight = pixelToHeight(
@@ -545,7 +543,7 @@
         }
       }
       
-      // 初始化（与原始一致）
+      // 初始化
       function init() {
         if (rulerContainer.offsetHeight > 0) {
           generateRuler();
